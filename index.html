@@ -113,7 +113,7 @@
             <div class="flex flex-col items-center justify-center text-center">
                 <!-- ロゴ配置スペース -->
                 <div class="w-48 h-48 mb-6 flex items-center justify-center">
-                    <img src="512×512.png" alt="ナットク買い ロゴ" class="w-full h-full object-contain">
+                    <img src="192x192.png" alt="ナットク買い ロゴ" class="w-full h-full object-contain">
                 </div>
                 <h1 class="text-4xl font-bold text-gray-800">ナットク買い</h1>
                 <p class="mt-4 text-gray-500 max-w-xs">「衝動買い」を「納得買い」に変える、<br>あなたの賢い買い物パートナー。</p>
@@ -444,21 +444,9 @@
         let currentRating = 0; // レビュー画面での現在の評価
 
         let items = {
-            wishlist: [
-                { id: 1, name: '最新ワイヤレスイヤホン Pro', price: 25000, imageUrl: 'https://placehold.co/600x400/44E3D2/FFFFFF?text=Earbuds', cooldownEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), memo: 'ノイズキャンセリングがすごいらしい' },
-                { id: 2, name: 'デザイナーズスニーカー X1', price: 18000, imageUrl: 'https://placehold.co/600x400/16A085/FFFFFF?text=Sneakers', cooldownEnd: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), memo: '限定カラー。合わせやすいかな？' }
-            ],
-            purchased: [
-                 { id: 3, name: '多機能バックパック', price: 15000, imageUrl: 'https://placehold.co/600x400/3498db/FFFFFF?text=Backpack', memo: '旅行用に購入', satisfaction: 5, reviewComment: '容量も多くて期待通り！ただ、少し重いのが難点。', decisionDate: new Date('2025-09-08T10:00:00') },
-                 { id: 4, name: 'スマートウォッチ SE', price: 35000, imageUrl: 'https://placehold.co/600x400/e74c3c/FFFFFF?text=Watch', memo: '健康管理のため', satisfaction: 2, reviewComment: 'バッテリーの持ちが思ったより良くなかった。', decisionDate: new Date('2025-09-05T11:00:00') },
-                 { id: 5, name: 'コーヒーメーカー', price: 8000, imageUrl: 'https://placehold.co/600x400/9b59b6/FFFFFF?text=Coffee', memo: '朝の一杯', decisionDate: new Date('2025-08-20T12:00:00') }, // レビュー可能
-                 { id: 6, name: 'ワイヤレスマウス', price: 4500, imageUrl: 'https://placehold.co/600x400/f1c40f/000000?text=Mouse', memo: '作業効率化', satisfaction: 4, reviewComment: 'クリック感が良い', decisionDate: new Date('2025-08-15T13:00:00') },
-                 { id: 7, name: '格安タブレット', price: 12000, imageUrl: 'https://placehold.co/600x400/e67e22/FFFFFF?text=Tablet', memo: '動画視聴用', satisfaction: 1, reviewComment: '動作が遅すぎて使い物にならないレベル。', decisionDate: new Date('2025-07-30T14:00:00') },
-                 { id: 8, name: '高級キーボード', price: 28000, imageUrl: 'https://placehold.co/600x400/2c3e50/FFFFFF?text=Keyboard', memo: '打鍵感が最高', satisfaction: 5, reviewComment: '値段は高いがそれだけの価値はある。仕事が捗る！', decisionDate: new Date('2025-09-01T15:00:00') }
-            ],
-            dismissed: [
-                { id: 9, name: '限定版ゲームソフト', price: 7800, imageUrl: 'https://placehold.co/600x400/34495e/FFFFFF?text=Game', memo: '評判が微妙だったので見送り', decisionDate: new Date('2025-09-02T16:00:00')}
-            ]
+            wishlist: [],
+            purchased: [],
+            dismissed: []
         };
 
 
@@ -584,7 +572,7 @@
             
             if(itemToEdit.cooldownEnd) {
                 const now = new Date();
-                const diffTime = itemToEdit.cooldownEnd - now;
+                const diffTime = new Date(itemToEdit.cooldownEnd) - now;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                 if (diffDays <= 1) cooldownSelect.value = '1';
@@ -775,11 +763,12 @@
             const setupFooter = (state) => {
                 const isWishlist = state === 'wishlist';
                 const isReviewable = state === 'reviewable';
+                const isReviewed = state === 'reviewed';
 
-                detailFooter.classList.toggle('hidden', !isWishlist && !isReviewable);
+                detailFooter.classList.toggle('hidden', state === 'dismissed' || state === 'waiting' );
                 detailWishlistActionsGrid.classList.toggle('hidden', !isWishlist);
                 detailReviewBtn.classList.toggle('hidden', !isReviewable);
-                detailEditBtn.classList.toggle('hidden', !isWishlist);
+                detailEditBtn.classList.toggle('hidden', !isWishlist && !isReviewed);
             };
 
             if (itemOriginList === 'wishlist') {
@@ -788,7 +777,7 @@
                 setupFooter('wishlist');
 
                 const now = new Date();
-                const diffTime = item.cooldownEnd - now;
+                const diffTime = new Date(item.cooldownEnd) - now;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 cooldownStatusEl.innerHTML = diffTime <= 0 ?
                     `<p class="font-bold text-teal-600">検討期間が終了しました</p><p class="text-sm text-gray-500 mt-1">今が冷静な判断の時です。</p>` :
@@ -1013,6 +1002,4 @@
     </script>
 </body>
 </html>
-
-
 
