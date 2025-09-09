@@ -1,0 +1,33 @@
+{
+  "name": "ナットク買い",
+  "short_name": "ナットク買い",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#F0FDF4",
+  "theme_color": "#16A085",
+  "description": "「衝動買い」を「納得買い」に変える、あなたの賢い買い物パートナー。",
+  "icons": [
+    {
+      "src": "192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/index.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "name",
+      "text": "memo",
+      "url": "url"
+    }
+  }
+}

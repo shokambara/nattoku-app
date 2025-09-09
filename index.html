@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ナットク買い</title>
+    <!-- Web App Manifest (あとで作成) -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* カスタムスタイル */
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ロゴから抽出したグラデーション */
+        .gradient-bg {
+            background: linear-gradient(135deg, #44E3D2 0%, #16A085 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #44E3D2 0%, #16A085 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* 画面遷移のアニメーション */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .page-hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .page-hidden-back {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .page-current {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        /* FABのスタイル */
+        .fab {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* カードのスタイル */
+        .item-card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .item-card:active {
+            transform: scale(0.97);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 下部ナビゲーション */
+        .bottom-nav {
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* モーダルのスタイル */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .modal-content {
+            transform: translateY(20px);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        /* スクロールバー非表示 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased overflow-hidden">
+
+    <!-- アプリケーションのコンテナ -->
+    <div id="app" class="relative w-full h-screen mx-auto max-w-lg bg-white overflow-hidden">
+
+        <!-- ======================================== -->
+        <!-- 1. タイトル画面 (初回起動時) -->
+        <!-- ======================================== -->
+        <div id="title-screen" class="page page-current flex flex-col items-center justify-center p-8 h-full">
+            <div class="flex flex-col items-center justify-center text-center">
+                <!-- ロゴ配置スペース -->
+                <div class="w-48 h-48 mb-6 flex items-center justify-center">
+                    <img src="192×192.png" alt="ナットク買い ロゴ" class="w-full h-full object-contain">
+                </div>
+                <h1 class="text-4xl font-bold text-gray-800">ナットク買い</h1>
+                <p class="mt-4 text-gray-500 max-w-xs">「衝動買い」を「納得買い」に変える、<br>あなたの賢い買い物パートナー。</p>
+            </div>
+            <div class="w-full mt-12">
+                <button id="start-btn" class="w-full gradient-bg text-white font-bold py-4 px-4 rounded-xl text-lg shadow-lg hover:opacity-90 transition-opacity">
+                    はじめる
+                </button>
+                <button id="how-to-use-btn" class="mt-4 w-full text-gray-500 hover:text-gray-800 transition-colors">操作説明</button>
+            </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 2. メイン画面 (欲しいものリスト) -->
+        <!-- ======================================== -->
+        <div id="main-screen" class="page page-hidden flex flex-col h-full">
+            <header class="flex items-center justify-between p-4 border-b border-gray-200">
+                <button id="header-title-btn" class="text-xl font-bold text-gray-800 hover:opacity-75 transition-opacity">ナットク買い</button>
+                <div class="flex items-center space-x-2">
+                    <button id="dashboard-btn" class="gradient-bg text-white font-medium text-sm px-4 py-2 rounded-full shadow-md hover:opacity-90 transition-opacity">
+                        ダッシュボード
+                    </button>
+                </div>
+            </header>
+
+            <main id="item-list" class="flex-grow p-4 overflow-y-auto pb-24">
+                <!-- アイテムカードがここに追加されます -->
+                 <div class="text-center text-gray-400 mt-16">
+                    <p>右下の「+」ボタンから<br>欲しいものを登録しよう！</p>
+                </div>
+            </main>
+
+            <!-- フローティングアクションボタン (FAB) -->
+            <button id="add-item-fab" class="fab absolute bottom-24 right-6 w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white shadow-lg">
+                <svg class="w-8 h-8" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            </button>
+
+            <!-- 下部ナビゲーション -->
+            <nav class="bottom-nav absolute bottom-0 left-0 w-full bg-white flex justify-around border-t">
+                <button id="nav-wishlist" class="nav-btn flex-1 p-4 flex flex-col items-center text-teal-600">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                    <span class="text-xs font-medium">欲しいもの</span>
+                </button>
+                <button id="nav-purchased" class="nav-btn flex-1 p-4 flex flex-col items-center text-gray-400">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    <span class="text-xs font-medium">購入済み</span>
+                </button>
+                <button id="nav-dismissed" class="nav-btn flex-1 p-4 flex flex-col items-center text-gray-400">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                    <span class="text-xs font-medium">見送り</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- アイテム詳細画面 -->
+        <!-- ======================================== -->
+        <div id="item-detail-screen" class="page page-hidden flex flex-col h-full bg-gray-50">
+            <header class="flex items-center p-4 border-b bg-white">
+                <button id="back-to-main-from-detail-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h1 class="text-xl font-bold text-gray-800 mx-auto">商品の詳細</h1>
+                <div class="w-10"></div> <!-- Spacer -->
+            </header>
+            <main class="flex-grow overflow-y-auto">
+                <div class="w-full h-64 bg-gray-200">
+                    <img id="detail-item-image" src="" alt="商品画像" class="w-full h-full object-contain">
+                </div>
+                <div class="p-6 space-y-4">
+                    <h2 id="detail-item-name" class="text-2xl font-bold text-gray-800"></h2>
+                    <p id="detail-item-price" class="text-xl font-semibold gradient-text"></p>
+                    
+                    <div id="detail-item-cooldown-status" class="bg-white p-4 rounded-lg shadow-sm">
+                        <!-- 検討状況がここに表示されます -->
+                    </div>
+
+                    <div id="detail-item-review" class="hidden bg-white p-4 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-2">あなたのレビュー</h3>
+                        <div id="detail-item-satisfaction" class="flex mb-2">
+                            <!-- JSで星が表示されます -->
+                        </div>
+                        <p id="detail-item-review-comment" class="text-gray-600 whitespace-pre-wrap"></p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-2">メモ</h3>
+                        <p id="detail-item-memo" class="text-gray-600 whitespace-pre-wrap"></p>
+                    </div>
+                </div>
+            </main>
+            <footer id="detail-footer" class="p-4 bg-white border-t space-y-3">
+                <div class="grid grid-cols-2 gap-3" id="detail-wishlist-actions-grid">
+                    <button id="detail-dismiss-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-3 rounded-xl hover:bg-gray-300 transition-colors">見送る</button>
+                    <button id="detail-purchase-btn" class="w-full gradient-bg text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition-opacity">購入を決める</button>
+                </div>
+                <button id="detail-review-btn" class="w-full bg-yellow-400 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-yellow-500 transition-colors hidden">レビューする</button>
+                <button id="detail-edit-btn" class="w-full text-center text-gray-500 font-medium py-2 rounded-xl hover:bg-gray-100 transition-colors">このアイテムを編集する</button>
+            </footer>
+        </div>
+
+
+        <!-- ======================================== -->
+        <!-- 3. アイテム登録・編集画面 -->
+        <!-- ======================================== -->
+        <div id="item-form-screen" class="page page-hidden flex flex-col h-full bg-gray-50">
+            <header class="flex items-center p-4 border-b bg-white">
+                <button id="back-to-main-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h1 class="text-xl font-bold text-gray-800 mx-auto">欲しいものを登録</h1>
+                <div class="w-10"></div> <!-- Spacer -->
+            </header>
+
+            <main class="flex-grow p-6 overflow-y-auto">
+                <div class="space-y-6">
+                     <!-- 編集中のアイテムIDを保持する隠しフィールド -->
+                    <input type="hidden" id="form-item-id">
+                     <!-- 画像表示エリア -->
+                    <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <img id="item-image-preview" src="" alt="商品画像" class="hidden w-full h-full object-contain rounded-lg">
+                        <span id="item-image-placeholder" class="text-gray-400">URLから画像を取得します</span>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <label for="item-url" class="block text-sm font-medium text-gray-700">商品ページのURL</label>
+                            <span id="url-status" class="text-xs text-gray-500"></span>
+                        </div>
+                        <input type="url" id="item-url" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500" placeholder="https://...">
+                    </div>
+                     <div>
+                        <label for="item-name" class="block text-sm font-medium text-gray-700">商品名</label>
+                        <input type="text" id="item-name" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+                     <div>
+                        <label for="item-price" class="block text-sm font-medium text-gray-700">価格</label>
+                        <input type="number" id="item-price" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500" placeholder="¥">
+                    </div>
+                    <div>
+                        <label for="item-cooldown" class="block text-sm font-medium text-gray-700">検討期間</label>
+                        <select id="item-cooldown" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            <option value="1">1日後</option>
+                            <option value="3">3日後</option>
+                            <option value="7">1週間後</option>
+                            <option value="14">2週間後</option>
+                            <option value="30">1ヶ月後</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="item-memo" class="block text-sm font-medium text-gray-700">メモ</label>
+                        <textarea id="item-memo" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"></textarea>
+                    </div>
+                </div>
+            </main>
+            <footer class="p-4 bg-white border-t">
+                <button id="save-item-btn" class="w-full gradient-bg text-white font-bold py-3 px-4 rounded-xl text-lg shadow-lg hover:opacity-90 transition-opacity">
+                    保存
+                </button>
+            </footer>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 4. ダッシュボード画面 -->
+        <!-- ======================================== -->
+        <div id="dashboard-screen" class="page page-hidden flex flex-col h-full bg-gray-50">
+             <header class="flex items-center p-4 border-b bg-white">
+                <button id="back-to-main-from-dash-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h1 class="text-xl font-bold text-gray-800 mx-auto">ダッシュボード</h1>
+                <div class="w-10"></div> <!-- Spacer -->
+            </header>
+            <main class="flex-grow p-6 overflow-y-auto">
+                <div class="space-y-6">
+                    <!-- 節約額 & 購入総額 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-md text-center">
+                            <p class="text-sm text-gray-500">見送った節約額</p>
+                            <p id="dashboard-saved-amount" class="text-2xl font-bold gradient-text my-1">¥0</p>
+                            <p class="text-xs text-gray-400">（累計）</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-md text-center">
+                            <p class="text-sm text-gray-500">購入した総額</p>
+                            <p id="dashboard-total-spent" class="text-2xl font-bold text-gray-800 my-1">¥0</p>
+                             <p class="text-xs text-gray-400">（累計）</p>
+                        </div>
+                    </div>
+                    <!-- 平均満足度 -->
+                    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                        <p class="text-sm text-gray-500">購入した商品の平均満足度</p>
+                        <div id="dashboard-satisfaction-stars" class="flex justify-center items-center my-2 space-x-1">
+                            <!-- JSで星がレンダリングされます -->
+                            <span class="text-sm text-gray-400">まだ評価された商品がありません</span>
+                        </div>
+                    </div>
+                    <!-- 高評価の買い物 -->
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800">高評価の買い物 (★4以上)</h3>
+                        <div id="dashboard-best-purchase" class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar">
+                            <p class="text-sm text-gray-400 flex-shrink-0">まだ評価された商品がありません</p>
+                        </div>
+                    </div>
+
+                    <!-- 低評価の買い物 -->
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-bold text-lg mb-3 text-gray-800">低評価の買い物 (★2以下)</h3>
+                        <div id="dashboard-worst-purchase" class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar">
+                             <p class="text-sm text-gray-400 flex-shrink-0">まだ評価された商品がありません</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 5. 満足度レビュー画面 (新規追加) -->
+        <!-- ======================================== -->
+        <div id="review-screen" class="page page-hidden flex flex-col h-full bg-gray-50">
+            <header class="flex items-center p-4 border-b bg-white">
+                 <h1 class="text-xl font-bold text-gray-800 mx-auto">満足度をレビュー</h1>
+            </header>
+            <main class="flex-grow p-6 flex flex-col items-center justify-center text-center">
+                <p class="text-gray-600 mb-2">購入した商品：</p>
+                <h2 id="review-item-name" class="text-2xl font-bold mb-8"></h2>
+
+                <p class="text-lg font-medium mb-4">この買い物、満足度は？</p>
+                <div id="review-stars" class="flex space-x-2 text-gray-300 cursor-pointer">
+                    <svg data-rating="1" class="w-12 h-12 star" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                    <svg data-rating="2" class="w-12 h-12 star" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                    <svg data-rating="3" class="w-12 h-12 star" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                    <svg data-rating="4" class="w-12 h-12 star" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                    <svg data-rating="5" class="w-12 h-12 star" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                </div>
+                <div class="w-full mt-8 max-w-sm">
+                    <label for="review-comment" class="block text-sm font-medium text-gray-700 text-left">感想 (任意)</label>
+                    <textarea id="review-comment" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500" placeholder="使い心地、デザインなど..."></textarea>
+                </div>
+            </main>
+            <footer class="p-4 bg-white border-t">
+                <button id="save-review-btn" class="w-full gradient-bg text-white font-bold py-3 px-4 rounded-xl text-lg shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    保存
+                </button>
+            </footer>
+        </div>
+
+
+        <!-- ======================================== -->
+        <!-- 操作説明モーダル -->
+        <!-- ======================================== -->
+        <div id="how-to-use-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+             <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 opacity-0">
+                <h2 class="text-xl font-bold text-center mb-6">ナットク買いの使い方</h2>
+                <div class="space-y-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">1</div>
+                        <p class="text-gray-600 flex-1">欲しいものをURLや共有から簡単登録</p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">2</div>
+                        <p class="text-gray-600 flex-1">検討期間で冷静に判断</p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold text-xl mr-4">3</div>
+                        <p class="text-gray-600 flex-1">購入後は満足度を記録して次に活かそう</p>
+                    </div>
+                </div>
+                <button id="close-modal-btn" class="mt-8 w-full bg-gray-200 text-gray-800 font-bold py-3 px-4 rounded-xl hover:bg-gray-300 transition-colors">
+                    閉じる
+                </button>
+            </div>
+        </div>
+        
+        <!-- Toast Notification -->
+        <div id="toast-notification" class="fixed top-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transform -translate-y-10 transition-all duration-300 z-50">
+            <p id="toast-message"></p>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 要素取得 ---
+        const pages = document.querySelectorAll('.page');
+        const itemListEl = document.getElementById('item-list');
+
+        const startBtn = document.getElementById('start-btn');
+        const addItemFab = document.getElementById('add-item-fab');
+        const backToMainBtn = document.getElementById('back-to-main-btn');
+        const saveItemBtn = document.getElementById('save-item-btn');
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        const headerTitleBtn = document.getElementById('header-title-btn');
+        const backToMainFromDashBtn = document.getElementById('back-to-main-from-dash-btn');
+        const backToMainFromDetailBtn = document.getElementById('back-to-main-from-detail-btn');
+
+        // 詳細画面の要素
+        const detailFooter = document.getElementById('detail-footer');
+        const detailEditBtn = document.getElementById('detail-edit-btn');
+        const detailDismissBtn = document.getElementById('detail-dismiss-btn');
+        const detailPurchaseBtn = document.getElementById('detail-purchase-btn');
+        const detailReviewBtn = document.getElementById('detail-review-btn');
+        const detailWishlistActionsGrid = document.getElementById('detail-wishlist-actions-grid');
+
+        // レビュー画面の要素
+        const reviewStarsContainer = document.getElementById('review-stars');
+        const reviewStars = reviewStarsContainer.querySelectorAll('.star');
+        const saveReviewBtn = document.getElementById('save-review-btn');
+        const reviewItemNameEl = document.getElementById('review-item-name');
+        const reviewCommentInput = document.getElementById('review-comment');
+
+        const howToUseBtn = document.getElementById('how-to-use-btn');
+        const howToUseModal = document.getElementById('how-to-use-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        const toastNotification = document.getElementById('toast-notification');
+        const toastMessage = document.getElementById('toast-message');
+        
+        const priceInput = document.getElementById('item-price');
+        const cooldownSelect = document.getElementById('item-cooldown');
+        const urlInput = document.getElementById('item-url');
+        const nameInput = document.getElementById('item-name');
+        const imagePreview = document.getElementById('item-image-preview');
+        const imagePlaceholder = document.getElementById('item-image-placeholder');
+        const formItemId = document.getElementById('form-item-id');
+
+        // --- データ管理 ---
+        let currentView = 'wishlist'; // 'wishlist', 'purchased', 'dismissed'
+        let currentItemId = null; // 詳細表示/レビュー中のアイテムID
+        let currentRating = 0; // レビュー画面での現在の評価
+
+        let items = {
+            wishlist: [
+                { id: 1, name: '最新ワイヤレスイヤホン Pro', price: 25000, imageUrl: 'https://placehold.co/600x400/44E3D2/FFFFFF?text=Earbuds', cooldownEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), memo: 'ノイズキャンセリングがすごいらしい' },
+                { id: 2, name: 'デザイナーズスニーカー X1', price: 18000, imageUrl: 'https://placehold.co/600x400/16A085/FFFFFF?text=Sneakers', cooldownEnd: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), memo: '限定カラー。合わせやすいかな？' }
+            ],
+            purchased: [
+                 { id: 3, name: '多機能バックパック', price: 15000, imageUrl: 'https://placehold.co/600x400/3498db/FFFFFF?text=Backpack', memo: '旅行用に購入', satisfaction: 5, reviewComment: '容量も多くて期待通り！ただ、少し重いのが難点。', decisionDate: new Date('2025-09-08T10:00:00') },
+                 { id: 4, name: 'スマートウォッチ SE', price: 35000, imageUrl: 'https://placehold.co/600x400/e74c3c/FFFFFF?text=Watch', memo: '健康管理のため', satisfaction: 2, reviewComment: 'バッテリーの持ちが思ったより良くなかった。', decisionDate: new Date('2025-09-05T11:00:00') },
+                 { id: 5, name: 'コーヒーメーカー', price: 8000, imageUrl: 'https://placehold.co/600x400/9b59b6/FFFFFF?text=Coffee', memo: '朝の一杯', decisionDate: new Date('2025-08-20T12:00:00') }, // レビュー可能
+                 { id: 6, name: 'ワイヤレスマウス', price: 4500, imageUrl: 'https://placehold.co/600x400/f1c40f/000000?text=Mouse', memo: '作業効率化', satisfaction: 4, reviewComment: 'クリック感が良い', decisionDate: new Date('2025-08-15T13:00:00') },
+                 { id: 7, name: '格安タブレット', price: 12000, imageUrl: 'https://placehold.co/600x400/e67e22/FFFFFF?text=Tablet', memo: '動画視聴用', satisfaction: 1, reviewComment: '動作が遅すぎて使い物にならないレベル。', decisionDate: new Date('2025-07-30T14:00:00') },
+                 { id: 8, name: '高級キーボード', price: 28000, imageUrl: 'https://placehold.co/600x400/2c3e50/FFFFFF?text=Keyboard', memo: '打鍵感が最高', satisfaction: 5, reviewComment: '値段は高いがそれだけの価値はある。仕事が捗る！', decisionDate: new Date('2025-09-01T15:00:00') }
+            ],
+            dismissed: [
+                { id: 9, name: '限定版ゲームソフト', price: 7800, imageUrl: 'https://placehold.co/600x400/34495e/FFFFFF?text=Game', memo: '評判が微妙だったので見送り', decisionDate: new Date('2025-09-02T16:00:00')}
+            ]
+        };
+
+
+        // --- 画面遷移ロジック ---
+        const navigateTo = (targetPageId, direction = 'forward') => {
+            const targetPage = document.getElementById(targetPageId);
+            const currentPage = document.querySelector('.page-current');
+
+            if (!targetPage || !currentPage || targetPage.id === currentPage.id) return;
+
+            // Animate out the current page
+            if (direction === 'forward') {
+                currentPage.classList.add('page-hidden-back'); // moves left
+            } else {
+                currentPage.classList.add('page-hidden'); // moves right
+            }
+            currentPage.classList.remove('page-current');
+            
+            // Animate in the target page
+            targetPage.classList.remove('page-hidden', 'page-hidden-back');
+            targetPage.classList.add('page-current');
+        };
+
+        // --- イベントリスナー ---
+        startBtn.addEventListener('click', () => navigateTo('main-screen'));
+        headerTitleBtn.addEventListener('click', () => navigateTo('title-screen', 'back'));
+        addItemFab.addEventListener('click', () => {
+            resetForm();
+            navigateTo('item-form-screen');
+        });
+        backToMainBtn.addEventListener('click', () => navigateTo('main-screen', 'back'));
+        
+        dashboardBtn.addEventListener('click', () => {
+            renderDashboard();
+            navigateTo('dashboard-screen');
+        });
+
+        backToMainFromDashBtn.addEventListener('click', () => navigateTo('main-screen', 'back'));
+        backToMainFromDetailBtn.addEventListener('click', () => navigateTo('main-screen', 'back'));
+        
+        saveItemBtn.addEventListener('click', () => {
+            const idToEdit = formItemId.value;
+            const coolDownDays = parseInt(cooldownSelect.value, 10);
+            const newCooldownEnd = new Date(Date.now() + coolDownDays * 24 * 60 * 60 * 1000);
+            const memoValue = document.getElementById('item-memo').value;
+
+            if (idToEdit) {
+                for (const list in items) {
+                    const itemIndex = items[list].findIndex(i => i.id === parseInt(idToEdit, 10));
+                    if (itemIndex > -1) {
+                        const item = items[list][itemIndex];
+                        item.name = nameInput.value;
+                        item.price = parseInt(priceInput.value, 10);
+                        item.memo = memoValue;
+                        if(list === 'wishlist') item.cooldownEnd = newCooldownEnd;
+                        if(imagePreview.src) item.imageUrl = imagePreview.src;
+                        break;
+                    }
+                }
+            } else {
+                const newItem = {
+                    id: Date.now(),
+                    name: nameInput.value,
+                    price: parseInt(priceInput.value, 10) || 0,
+                    imageUrl: imagePreview.src || 'https://placehold.co/600x400/CCCCCC/FFFFFF?text=No+Image',
+                    cooldownEnd: newCooldownEnd,
+                    memo: memoValue,
+                };
+                items.wishlist.push(newItem);
+            }
+            currentView = 'wishlist';
+            renderItems();
+            navigateTo('main-screen', 'back');
+            resetForm();
+        });
+
+        // 詳細画面のボタンイベント
+        detailDismissBtn.addEventListener('click', () => {
+            if (!currentItemId) return;
+            const itemIndex = items.wishlist.findIndex(i => i.id === currentItemId);
+            if (itemIndex > -1) {
+                const [item] = items.wishlist.splice(itemIndex, 1);
+                item.decisionDate = new Date();
+                items.dismissed.push(item);
+            }
+            renderItems();
+            navigateTo('main-screen', 'back');
+        });
+
+        detailPurchaseBtn.addEventListener('click', () => {
+             if (!currentItemId) return;
+            const itemIndex = items.wishlist.findIndex(i => i.id === currentItemId);
+            if (itemIndex > -1) {
+                const [item] = items.wishlist.splice(itemIndex, 1);
+                item.decisionDate = new Date();
+                delete item.cooldownEnd; // 検討期間は不要になるので削除
+                items.purchased.push(item);
+                
+                showToast('実際に商品を使ってレビューし、これからの買い物に活かしましょう！');
+
+                currentView = 'purchased';
+                renderItems();
+                navigateTo('main-screen', 'back');
+            }
+        });
+
+        detailEditBtn.addEventListener('click', () => {
+            if (!currentItemId) return;
+            let itemToEdit = null;
+            for (const list in items) {
+                itemToEdit = items[list].find(i => i.id === currentItemId);
+                if (itemToEdit) break;
+            }
+            if (!itemToEdit) return;
+
+            formItemId.value = itemToEdit.id;
+            nameInput.value = itemToEdit.name;
+            priceInput.value = itemToEdit.price;
+            document.getElementById('item-memo').value = itemToEdit.memo;
+            imagePreview.src = itemToEdit.imageUrl;
+            imagePreview.classList.remove('hidden');
+            imagePlaceholder.classList.add('hidden');
+            
+            if(itemToEdit.cooldownEnd) {
+                const now = new Date();
+                const diffTime = itemToEdit.cooldownEnd - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= 1) cooldownSelect.value = '1';
+                else if (diffDays <= 3) cooldownSelect.value = '3';
+                else if (diffDays <= 7) cooldownSelect.value = '7';
+                else if (diffDays <= 14) cooldownSelect.value = '14';
+                else cooldownSelect.value = '30';
+                cooldownSelect.parentElement.classList.remove('hidden');
+            } else {
+                 cooldownSelect.parentElement.classList.add('hidden');
+            }
+
+
+            navigateTo('item-form-screen');
+        });
+
+        detailReviewBtn.addEventListener('click', () => {
+            if (currentItemId) {
+                showReviewScreen(currentItemId);
+            }
+        });
+
+        // レビュー画面のイベント
+        reviewStarsContainer.addEventListener('click', (e) => {
+            const star = e.target.closest('.star');
+            if (!star) return;
+            currentRating = parseInt(star.dataset.rating, 10);
+            updateReviewStars();
+            saveReviewBtn.disabled = false;
+        });
+
+        saveReviewBtn.addEventListener('click', () => {
+            if (!currentItemId || currentRating === 0) return;
+            
+            const itemIndex = items.purchased.findIndex(i => i.id === currentItemId);
+            if (itemIndex > -1) {
+                items.purchased[itemIndex].satisfaction = currentRating;
+                items.purchased[itemIndex].reviewComment = reviewCommentInput.value;
+            }
+            
+            currentView = 'purchased';
+            renderItems();
+            navigateTo('main-screen', 'back');
+        });
+        
+        // アイテムリストのイベント委譲（レビューボタンのため）
+        itemListEl.addEventListener('click', (e) => {
+            const card = e.target.closest('.item-card');
+            if (card) {
+                const itemId = parseInt(card.dataset.itemId, 10);
+                showItemDetail(itemId);
+            }
+        });
+
+
+        // モーダル表示/非表示
+        howToUseBtn.addEventListener('click', () => {
+            howToUseModal.classList.remove('hidden');
+            setTimeout(() => {
+                howToUseModal.style.opacity = 1;
+                howToUseModal.querySelector('.modal-content').style.opacity = 1;
+                howToUseModal.querySelector('.modal-content').style.transform = 'translateY(0)';
+            }, 10);
+        });
+
+        const closeModal = () => {
+            howToUseModal.style.opacity = 0;
+            howToUseModal.querySelector('.modal-content').style.opacity = 0;
+            howToUseModal.querySelector('.modal-content').style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                howToUseModal.classList.add('hidden');
+            }, 300);
+        };
+        closeModalBtn.addEventListener('click', closeModal);
+        howToUseModal.addEventListener('click', (e) => {
+             if (e.target === howToUseModal) closeModal();
+        });
+
+        // 下部ナビゲーションのイベント
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetView = btn.id.split('-')[1];
+                if (targetView === currentView) return;
+                currentView = targetView;
+                renderItems();
+            });
+        });
+
+        // --- 機能ロジック ---
+        
+        const showToast = (message) => {
+            toastMessage.textContent = message;
+            toastNotification.classList.remove('opacity-0', '-translate-y-10');
+            toastNotification.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toastNotification.classList.remove('opacity-100', 'translate-y-0');
+                toastNotification.classList.add('opacity-0', '-translate-y-10');
+            }, 3000); // 3秒後に非表示
+        };
+        
+        const resetForm = () => {
+            formItemId.value = '';
+            urlInput.value = '';
+            nameInput.value = '';
+            priceInput.value = '';
+            cooldownSelect.value = '3';
+            document.getElementById('item-memo').value = '';
+            imagePreview.src = '';
+            imagePreview.classList.add('hidden');
+            imagePlaceholder.classList.remove('hidden');
+            cooldownSelect.parentElement.classList.remove('hidden');
+        };
+
+        const fetchProductInfo = (url) => {
+            const statusEl = document.getElementById('url-status');
+            statusEl.textContent = '情報を取得中...';
+            statusEl.classList.remove('text-green-600', 'text-red-600');
+            statusEl.classList.add('text-gray-500');
+
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (url.includes('amazon.co.jp')) resolve({ name: 'Amazon ダミー商品', price: 12800, imageUrl: 'https://placehold.co/600x400/FF9900/FFFFFF?text=Amazon' });
+                    else if (url.includes('rakuten.co.jp')) resolve({ name: '楽天 ダミー商品', price: 8900, imageUrl: 'https://placehold.co/600x400/BF0000/FFFFFF?text=Rakuten' });
+                    else if (url.includes('zozo.jp')) resolve({ name: 'ZOZO ダミー商品', price: 21000, imageUrl: 'https://placehold.co/600x400/000000/FFFFFF?text=ZOZO' });
+                    else reject('このURLからは自動取得できませんでした。');
+                }, 1500);
+            });
+        };
+
+        urlInput.addEventListener('paste', async (e) => {
+            e.preventDefault();
+            const url = e.clipboardData.getData('text');
+            urlInput.value = url;
+            const statusEl = document.getElementById('url-status');
+
+            try {
+                const productInfo = await fetchProductInfo(url);
+                nameInput.value = productInfo.name;
+                priceInput.value = productInfo.price;
+                imagePreview.src = productInfo.imageUrl;
+                imagePreview.classList.remove('hidden');
+                imagePlaceholder.classList.add('hidden');
+                statusEl.textContent = '情報を取得しました！';
+                statusEl.classList.add('text-green-600');
+                priceInput.dispatchEvent(new Event('input'));
+            } catch (error) {
+                statusEl.textContent = error;
+                statusEl.classList.add('text-red-600');
+            } finally {
+                setTimeout(() => { statusEl.textContent = ''; }, 3000);
+            }
+        });
+
+        priceInput.addEventListener('input', (e) => {
+            const price = parseInt(e.target.value, 10);
+            if (price < 10000) cooldownSelect.value = '3';
+            else if (price < 50000) cooldownSelect.value = '7';
+            else cooldownSelect.value = '14';
+        });
+
+        const showItemDetail = (itemId) => {
+            currentItemId = itemId;
+            let item = null;
+            let itemOriginList = null;
+
+            for (const list in items) {
+                const foundItem = items[list].find(i => i.id === itemId);
+                if (foundItem) {
+                    item = foundItem;
+                    itemOriginList = list;
+                    break;
+                }
+            }
+            if (!item) return;
+
+            document.getElementById('detail-item-image').src = item.imageUrl;
+            document.getElementById('detail-item-name').textContent = item.name;
+            document.getElementById('detail-item-price').textContent = `¥${item.price.toLocaleString()}`;
+            document.getElementById('detail-item-memo').textContent = item.memo || 'メモはありません';
+            
+            const cooldownStatusEl = document.getElementById('detail-item-cooldown-status');
+            const reviewSection = document.getElementById('detail-item-review');
+            const reviewStarsEl = document.getElementById('detail-item-satisfaction');
+            const reviewCommentEl = document.getElementById('detail-item-review-comment');
+
+            // --- Footer Button Logic ---
+            const setupFooter = (state) => {
+                const isWishlist = state === 'wishlist';
+                const isReviewable = state === 'reviewable';
+
+                detailFooter.classList.toggle('hidden', !isWishlist && !isReviewable);
+                detailWishlistActionsGrid.classList.toggle('hidden', !isWishlist);
+                detailReviewBtn.classList.toggle('hidden', !isReviewable);
+                detailEditBtn.classList.toggle('hidden', !isWishlist);
+            };
+
+            if (itemOriginList === 'wishlist') {
+                cooldownStatusEl.classList.remove('hidden');
+                reviewSection.classList.add('hidden');
+                setupFooter('wishlist');
+
+                const now = new Date();
+                const diffTime = item.cooldownEnd - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                cooldownStatusEl.innerHTML = diffTime <= 0 ?
+                    `<p class="font-bold text-teal-600">検討期間が終了しました</p><p class="text-sm text-gray-500 mt-1">今が冷静な判断の時です。</p>` :
+                    `<p class="font-bold text-gray-700">検討中...</p><p class="text-sm text-gray-500 mt-1">判断まであと <span class="font-bold text-lg">${diffDays}</span> 日</p>`;
+
+            } else if (itemOriginList === 'purchased') {
+                cooldownStatusEl.classList.add('hidden');
+                
+                if (item.satisfaction) { // レビュー済み
+                    reviewSection.classList.remove('hidden');
+                    setupFooter('reviewed');
+                    reviewStarsEl.innerHTML = '';
+                    for (let i = 1; i <= 5; i++) {
+                        const starClass = i <= item.satisfaction ? 'text-yellow-400' : 'text-gray-300';
+                        reviewStarsEl.innerHTML += `<svg class="w-5 h-5 ${starClass}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>`;
+                    }
+                    reviewCommentEl.textContent = item.reviewComment || '感想はありません。';
+                } else { // レビュー可能
+                    reviewSection.classList.add('hidden');
+                    setupFooter('reviewable');
+                }
+            } else { // 見送り済み
+                cooldownStatusEl.classList.add('hidden');
+                reviewSection.classList.add('hidden');
+                setupFooter('dismissed');
+            }
+            navigateTo('item-detail-screen');
+        };
+
+        const showReviewScreen = (itemId) => {
+            const item = items.purchased.find(i => i.id === itemId);
+            if (!item) return;
+            
+            currentItemId = itemId;
+            currentRating = 0;
+            reviewCommentInput.value = '';
+            reviewItemNameEl.textContent = item.name;
+            updateReviewStars();
+            saveReviewBtn.disabled = true;
+            navigateTo('review-screen');
+        };
+
+        const updateReviewStars = () => {
+            reviewStars.forEach(star => {
+                const rating = parseInt(star.dataset.rating, 10);
+                star.classList.toggle('text-yellow-400', rating <= currentRating);
+                star.classList.toggle('text-gray-300', rating > currentRating);
+            });
+        };
+
+        // --- Dashboard Rendering ---
+
+        // Helper function to create a purchase card for the dashboard carousel
+        const createDashboardPurchaseCard = (item) => {
+            if (!item || typeof item.satisfaction === 'undefined') {
+                return ''; // Return empty string if item is invalid
+            }
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                const starClass = i <= item.satisfaction ? 'text-yellow-400' : 'text-gray-300';
+                starsHtml += `<svg class="w-4 h-4 ${starClass}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>`;
+            }
+            return `
+                <div class="w-48 flex-shrink-0 bg-gray-50 p-3 rounded-lg border">
+                    <p class="font-bold text-gray-700 text-sm truncate">${item.name}</p>
+                    <div class="flex my-1">${starsHtml}</div>
+                    <p class="text-xs text-gray-500 italic truncate">"${item.reviewComment || '感想はありません。'}"</p>
+                </div>
+            `;
+        };
+        
+        const renderDashboard = () => {
+            const savedAmountEl = document.getElementById('dashboard-saved-amount');
+            const totalSaved = items.dismissed.reduce((sum, item) => sum + item.price, 0);
+            savedAmountEl.textContent = `¥${totalSaved.toLocaleString()}`;
+
+            const satisfactionStarsEl = document.getElementById('dashboard-satisfaction-stars');
+            const totalSpentEl = document.getElementById('dashboard-total-spent');
+            const bestPurchaseEl = document.getElementById('dashboard-best-purchase');
+            const worstPurchaseEl = document.getElementById('dashboard-worst-purchase');
+
+            const ratedItems = items.purchased.filter(item => typeof item.satisfaction === 'number');
+            const purchasedItems = items.purchased;
+
+            const totalSpent = purchasedItems.reduce((sum, item) => sum + item.price, 0);
+            totalSpentEl.textContent = `¥${totalSpent.toLocaleString()}`;
+
+            if (ratedItems.length === 0) {
+                satisfactionStarsEl.innerHTML = '<span class="text-sm text-gray-400">まだ評価された商品がありません</span>';
+                bestPurchaseEl.innerHTML = '<p class="text-sm text-gray-400 flex-shrink-0">高評価(★4以上)の買い物はありません</p>';
+                worstPurchaseEl.innerHTML = '<p class="text-sm text-gray-400 flex-shrink-0">低評価(★2以下)の買い物はありません</p>';
+                return;
+            }
+
+            const totalSatisfaction = ratedItems.reduce((sum, item) => sum + item.satisfaction, 0);
+            const avgSatisfaction = Math.round(totalSatisfaction / ratedItems.length);
+            
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                const starClass = i <= avgSatisfaction ? 'text-yellow-400' : 'text-gray-300';
+                starsHtml += `<svg class="w-8 h-8 ${starClass}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>`;
+            }
+            satisfactionStarsEl.innerHTML = starsHtml;
+            
+            const highRatedItems = ratedItems
+                .filter(item => item.satisfaction >= 4)
+                .sort((a, b) => b.satisfaction - a.satisfaction);
+
+            const lowRatedItems = ratedItems
+                .filter(item => item.satisfaction <= 2)
+                .sort((a, b) => a.satisfaction - b.satisfaction);
+
+            if (highRatedItems.length > 0) {
+                bestPurchaseEl.innerHTML = highRatedItems.map(createDashboardPurchaseCard).join('');
+            } else {
+                bestPurchaseEl.innerHTML = '<p class="text-sm text-gray-400 flex-shrink-0">高評価(★4以上)の買い物はありません</p>';
+            }
+
+            if (lowRatedItems.length > 0) {
+                worstPurchaseEl.innerHTML = lowRatedItems.map(createDashboardPurchaseCard).join('');
+            } else {
+                worstPurchaseEl.innerHTML = '<p class="text-sm text-gray-400 flex-shrink-0">低評価(★2以下)の買い物はありません</p>';
+            }
+        };
+
+        const formatDate = (dateString) => {
+            const date = new Date(dateString);
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}/${mm}/${dd}`;
+        };
+
+        const renderItems = () => {
+            const itemsToRender = [...items[currentView]];
+            itemListEl.innerHTML = '';
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.id.includes(currentView)) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-teal-600');
+                } else {
+                    btn.classList.remove('text-teal-600');
+                    btn.classList.add('text-gray-400');
+                }
+            });
+
+            if (currentView === 'purchased' || currentView === 'dismissed') {
+                itemsToRender.sort((a, b) => new Date(b.decisionDate) - new Date(a.decisionDate));
+            }
+
+            if(itemsToRender.length === 0){
+                let emptyMessage = '';
+                switch(currentView) {
+                    case 'wishlist': emptyMessage = '右下の「+」ボタンから<br>欲しいものを登録しよう！'; break;
+                    case 'purchased': emptyMessage = '購入済みのアイテムはありません'; break;
+                    case 'dismissed': emptyMessage = '見送ったアイテムはありません'; break;
+                }
+                itemListEl.innerHTML = `<div class="text-center text-gray-400 mt-16"><p>${emptyMessage}</p></div>`;
+                return;
+            }
+
+            itemsToRender.forEach(item => {
+                const card = document.createElement('div');
+                let statusHtml = '';
+                
+                if (currentView === 'wishlist') {
+                    const now = new Date();
+                    const diffTime = new Date(item.cooldownEnd) - now;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    statusHtml = diffTime <= 0 ? 
+                        `<span class="flex items-center text-sm font-medium text-teal-600"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>判断の時です</span>` : 
+                        `<span class="text-sm text-gray-400">残り ${diffDays}日</span>`;
+                } else if (currentView === 'purchased') {
+                    if (item.satisfaction) {
+                        let stars = '';
+                        for (let i = 1; i <= 5; i++) {
+                            stars += `<svg class="w-4 h-4 ${i <= item.satisfaction ? 'text-yellow-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>`;
+                        }
+                        statusHtml = `<div class="flex">${stars}</div>`;
+                    } else {
+                        statusHtml = `<button class="review-btn bg-yellow-400 text-white text-xs font-bold px-3 py-1 rounded-full hover:bg-yellow-500" data-item-id="${item.id}">レビューする</button>`;
+                    }
+                } else if (currentView === 'dismissed') {
+                    statusHtml = `<span class="text-sm text-gray-400">${formatDate(item.decisionDate)}</span>`;
+                }
+
+                card.className = 'item-card bg-white p-4 rounded-xl mb-4 flex items-center space-x-4';
+                card.dataset.itemId = item.id;
+                
+                card.innerHTML = `
+                    <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0">
+                        <img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover rounded-lg">
+                    </div>
+                    <div class="flex-grow overflow-hidden">
+                        <p class="font-bold text-gray-800 truncate">${item.name}</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm text-gray-500">¥${item.price.toLocaleString()}</p>
+                            ${currentView === 'purchased' ? `<span class="text-sm text-gray-400">${formatDate(item.decisionDate)}</span>` : ''}
+                        </div>
+                        <div class="flex items-center mt-2">${statusHtml}</div>
+                    </div>
+                `;
+                
+                itemListEl.appendChild(card);
+            });
+        };
+
+        // --- 初期化処理 ---
+        renderItems();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    });
+    </script>
+</body>
+</html>
+
+
+
